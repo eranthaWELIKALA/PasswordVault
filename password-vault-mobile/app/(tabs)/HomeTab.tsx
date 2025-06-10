@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 
 import { Picker } from "@react-native-picker/picker"; // npm install @react-native-picker/picker
 
@@ -14,15 +14,20 @@ import {
     Button,
 } from "react-native";
 import CustomBottomSheet from "../../components/CustomBottomSheet";
+import { encryptObject } from "@/services/crypto";
+import api from "@/services/api";
+import { HttpStatusCode } from "axios";
+import { Ionicons } from "@expo/vector-icons";
 
 type VaultEntry = {
-    _id: string;
-    userId: string;
-    deviceId: string;
+    _id?: string;
+    userId?: string;
+    deviceId?: string;
     label: string;
     entryType: String;
     group?: string;
     encryptedData?: string;
+    decryptedData?: Record<string, any>;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -38,6 +43,10 @@ export default function HomeTab({ entries, loading }: Props) {
     >({});
     const [sheetVisible, setSheetVisible] = useState(false);
     const [sheetEntry, setSheetEntry] = useState<VaultEntry | null>(null);
+    const [editMode, setEditMode] = useState(false);
+    const [editableEntry, setEditableEntry] = useState<Record<string, string>>(
+        {}
+    );
 
     // Add Entry Sheet State
     const [addSheetVisible, setAddSheetVisible] = useState(false);
@@ -54,6 +63,16 @@ export default function HomeTab({ entries, loading }: Props) {
         wifiPassword: "",
     });
     const [showAddPassword, setShowAddPassword] = useState(false);
+
+    useEffect(() => {
+        if (sheetEntry?.decryptedData) {
+            try {
+                setEditableEntry(sheetEntry.decryptedData);
+            } catch {
+                setEditableEntry({});
+            }
+        }
+    }, [sheetEntry]);
 
     if (loading) {
         return (
@@ -98,129 +117,290 @@ export default function HomeTab({ entries, loading }: Props) {
     };
 
     // Handler for adding a new entry (replace with your API call)
-    const handleAddEntry = () => {
-        // Example: encrypt and stringify sensitive data
-        const encryptedData = JSON.stringify({
-            username: newEntry.username,
-            password: newEntry.password,
-        });
-        // Here you would call your API to save the entry
-        // After saving, close the sheet and reset the form
-        setAddSheetVisible(false);
-        setNewEntry({
-            label: "",
-            group: "",
-            entryType: "login",
-            username: "",
-            password: "",
-            link: "",
-            note: "",
-            pin: "",
-            wifiName: "",
-            wifiPassword: "",
-        });
+    const handleAddEntry = async () => {
+        // Validate required fields
+        if (!newEntry.label) return alert("Label is required");
+        if (
+            newEntry.entryType === "login" &&
+            (!newEntry.username || !newEntry.password)
+        ) {
+            return alert("Username and Password are required for Login");
+        }
+        if (newEntry.entryType === "card_pin" && !newEntry.pin) {
+            return alert("PIN is required for Card PIN");
+        }
+        if (
+            newEntry.entryType === "wifi" &&
+            (!newEntry.wifiName || !newEntry.wifiPassword)
+        ) {
+            return alert("WiFi Name and Password are required for WiFi");
+        }
+        if (newEntry.entryType === "note" && !newEntry.note) {
+            return alert("Note is required");
+        }
+
+        // Prepare encryptedData based on entryType
+        let data: VaultEntry = {
+            label: newEntry.label,
+            entryType: newEntry.entryType,
+            group: newEntry.group,
+        };
+        let dataObj = {};
+        if (newEntry.entryType === "login") {
+            dataObj = {
+                username: newEntry.username,
+                password: newEntry.password,
+                link: newEntry.link,
+                note: newEntry.note,
+            };
+        } else if (newEntry.entryType === "card_pin") {
+            dataObj = {
+                pin: newEntry.pin,
+            };
+        } else if (newEntry.entryType === "wifi") {
+            dataObj = {
+                wifiName: newEntry.wifiName,
+                wifiPassword: newEntry.wifiPassword,
+            };
+        } else if (newEntry.entryType === "note") {
+            dataObj = {
+                note: newEntry.note,
+            };
+        }
+        data.encryptedData = encryptObject(dataObj);
+
+        try {
+            const response = await api.post("vault", data);
+
+            if (response.status === HttpStatusCode.Created) {
+                alert("Entry saved successfully!");
+                setAddSheetVisible(false);
+                setNewEntry({
+                    label: "",
+                    group: "",
+                    entryType: "login",
+                    username: "",
+                    password: "",
+                    link: "",
+                    note: "",
+                    pin: "",
+                    wifiName: "",
+                    wifiPassword: "",
+                });
+            } else {
+                alert("Failed to save entry.");
+            }
+        } catch (error: any) {
+            console.error("Error saving vault entry:", error);
+            alert("An error occurred while saving.");
+        }
+    };
+
+    const handleUpdateEntry = async () => {
+        try {
+            const updatedData = {
+                ...sheetEntry,
+                encryptedData: encryptObject(editableEntry),
+            };
+            const response = await api.put(
+                `vault/${sheetEntry?._id}`,
+                updatedData
+            );
+            if (response.status === 200) {
+                alert("Updated successfully!");
+                setEditMode(false);
+                closeSheet();
+            } else {
+                alert("Failed to update.");
+            }
+        } catch (err) {
+            alert("Error updating entry.");
+        }
     };
 
     return (
-        <>
-            <Button title="+ Add Entry" onPress={() => setAddSheetVisible(true)} />           
+        <View style={styles.tabContainer}>
+            <TouchableOpacity
+                style={styles.floatingButton}
+                onPress={() => setAddSheetVisible(true)}
+            >
+                <Ionicons name="add" size={32} color="#fff" />
+            </TouchableOpacity>
 
-            <FlatList
-                data={Object.entries(groupedEntries)}
-                keyExtractor={([groupName]) => groupName}
-                renderItem={({ item: [groupName, groupEntries] }) => (
-                    <View style={styles.groupContainer}>
-                        <Text style={styles.groupTitle}>
-                            {toPascalCase(groupName)}
-                        </Text>
-                        {groupEntries.map((entry) => (
-                            <TouchableOpacity
-                                key={entry._id}
-                                style={styles.entry}
-                                onPress={() => openSheet(entry)}
-                            >
-                                <Text style={styles.label}>{entry.label}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
-            />
+            <ScrollView>
+                <FlatList
+                    data={Object.entries(groupedEntries)}
+                    keyExtractor={([groupName]) => groupName}
+                    renderItem={({ item: [groupName, groupEntries] }) => (
+                        <View style={styles.groupContainer}>
+                            <Text style={styles.groupTitle}>
+                                {toPascalCase(groupName)}
+                            </Text>
+                            {groupEntries.map((entry) => (
+                                <TouchableOpacity
+                                    key={entry._id}
+                                    style={styles.entry}
+                                    onPress={() => openSheet(entry)}
+                                >
+                                    <Text style={styles.label}>
+                                        {entry.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                />
+            </ScrollView>
 
             {/* View Entry Bottom Sheet */}
             <CustomBottomSheet
                 visible={sheetVisible}
-                onClose={closeSheet}
-                heightPercent={0.5}
+                onClose={() => {
+                    setEditMode(false);
+                    closeSheet();
+                }}
+                heightPercent={0.85}
             >
                 {sheetEntry ? (
-                    <ScrollView>
-                        <Text style={styles.modalTitle}>
-                            {sheetEntry.label}
-                        </Text>
-                        {sheetEntry.encryptedData &&
-                            (() => {
-                                let obj: Record<string, any> = {};
-                                try {
-                                    obj = JSON.parse(sheetEntry.encryptedData);
-                                } catch {
-                                    return (
-                                        <Text style={{ color: "red" }}>
-                                            Invalid data
+                    <ScrollView
+                        contentContainerStyle={{
+                            padding: 16,
+                            paddingBottom: 80,
+                        }}
+                    >
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 8,
+                            }}
+                        >
+                            <Text style={styles.modalTitle}>
+                                {sheetEntry.label}
+                            </Text>
+                            {!editMode ? (
+                                <TouchableOpacity
+                                    onPress={() => setEditMode(true)}
+                                >
+                                    <Text style={{ color: "#007AFF" }}>
+                                        Edit
+                                    </Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={{ flexDirection: "row", gap: 16 }}>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setEditMode(false);
+                                            setEditableEntry(
+                                                sheetEntry.decryptedData || {}
+                                            );
+                                        }}
+                                    >
+                                        <Text style={{ color: "gray" }}>
+                                            Cancel
                                         </Text>
-                                    );
-                                }
-                                return Object.entries(obj).map(
-                                    ([key, value]) => {
-                                        if (key.toLowerCase() === "password") {
-                                            const id = `${sheetEntry._id}_${key}`;
-                                            const isVisible =
-                                                visiblePasswords[id];
-                                            return (
-                                                <View
-                                                    key={key}
-                                                    style={{
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={handleUpdateEntry}
+                                    >
+                                        <Text style={{ color: "#007AFF" }}>
+                                            Save
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+
+                        {Object.entries(editableEntry).map(([key, value]) => {
+                            const isPassword = key.toLowerCase() === "password";
+                            const id = `${sheetEntry._id}_${key}`;
+                            const isVisible = visiblePasswords[id];
+
+                            if (editMode) {
+                                return (
+                                    <TextInput
+                                        key={key}
+                                        style={styles.input}
+                                        value={editableEntry[key]}
+                                        onChangeText={(text) =>
+                                            setEditableEntry((e) => ({
+                                                ...e,
+                                                [key]: text,
+                                            }))
+                                        }
+                                        placeholder={toPascalCase(key)}
+                                        secureTextEntry={
+                                            isPassword && !isVisible
+                                        }
+                                    />
+                                );
+                            }
+
+                            return (
+                                <>
+                                    {!isPassword && (
+                                        <Text
+                                            style={[styles.input, { flex: 1 }]}
+                                        >
+                                            {toPascalCase(key)}: {String(value)}
+                                        </Text>
+                                    )}
+
+                                    {isPassword && (
+                                        <View
+                                            style={{
+                                                display: "flex",
+                                                flexDirection: "row",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                paddingBottom: 12,
+                                            }}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.passwordInput,
+                                                    {
+                                                        flex: 1,
+                                                        display: "flex",
                                                         flexDirection: "row",
-                                                        alignItems: "center",
-                                                        justifyContent:
-                                                            "space-between",
-                                                        width: "100%",
-                                                        paddingVertical: 2,
+                                                    },
+                                                ]}
+                                            >
+                                                {toPascalCase(key)}:{" "}
+                                                {isPassword && !isVisible
+                                                    ? "••••••"
+                                                    : String(value)}
+                                            </Text>
+                                            <View
+                                                style={{
+                                                    display: "flex",
+                                                    flexDirection: "row",
+                                                    justifyContent: "center",
+                                                    alignItems: "center",
+                                                    padding: 8,
+                                                }}
+                                            >
+                                                <Text
+                                                    onPress={() =>
+                                                        togglePasswordVisibility(
+                                                            sheetEntry._id!,
+                                                            key
+                                                        )
+                                                    }
+                                                    style={{
+                                                        color: "#007AFF",
+                                                        fontSize: 18,
                                                     }}
                                                 >
-                                                    <Text>
-                                                        {toPascalCase(key)}:{" "}
-                                                        {isVisible
-                                                            ? String(value)
-                                                            : "••••••"}
-                                                    </Text>
-                                                    <Text
-                                                        style={{
-                                                            marginLeft: 8,
-                                                            color: "#007AFF",
-                                                        }}
-                                                        onPress={() =>
-                                                            togglePasswordVisibility(
-                                                                sheetEntry._id,
-                                                                key
-                                                            )
-                                                        }
-                                                    >
-                                                        {isVisible
-                                                            ? "🙈"
-                                                            : "👁️"}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        }
-                                        return (
-                                            <Text key={key}>
-                                                {toPascalCase(key)}:{" "}
-                                                {String(value)}
-                                            </Text>
-                                        );
-                                    }
-                                );
-                            })()}
+                                                    {isVisible ? "🙈" : "👁️"}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    )}
+                                </>
+                            );
+                        })}
                     </ScrollView>
                 ) : (
                     <Text style={{ textAlign: "center", marginTop: 20 }}>
@@ -400,93 +580,19 @@ export default function HomeTab({ entries, loading }: Props) {
                     <View style={{ padding: 16, backgroundColor: "#fff" }}>
                         <TouchableOpacity
                             style={styles.saveButton}
-                            onPress={() => {
-                                // Validate required fields
-                                if (!newEntry.label)
-                                    return alert("Label is required");
-                                if (
-                                    newEntry.entryType === "login" &&
-                                    (!newEntry.username || !newEntry.password)
-                                ) {
-                                    return alert(
-                                        "Username and Password are required for Login"
-                                    );
-                                }
-                                if (
-                                    newEntry.entryType === "card_pin" &&
-                                    !newEntry.pin
-                                ) {
-                                    return alert(
-                                        "PIN is required for Card PIN"
-                                    );
-                                }
-                                if (
-                                    newEntry.entryType === "wifi" &&
-                                    (!newEntry.wifiName ||
-                                        !newEntry.wifiPassword)
-                                ) {
-                                    return alert(
-                                        "WiFi Name and Password are required for WiFi"
-                                    );
-                                }
-                                if (
-                                    newEntry.entryType === "note" &&
-                                    !newEntry.note
-                                ) {
-                                    return alert("Note is required");
-                                }
-
-                                // Prepare encryptedData based on entryType
-                                let encryptedData = "";
-                                if (newEntry.entryType === "login") {
-                                    encryptedData = JSON.stringify({
-                                        username: newEntry.username,
-                                        password: newEntry.password,
-                                        link: newEntry.link,
-                                        note: newEntry.note,
-                                    });
-                                } else if (newEntry.entryType === "card_pin") {
-                                    encryptedData = JSON.stringify({
-                                        pin: newEntry.pin,
-                                    });
-                                } else if (newEntry.entryType === "wifi") {
-                                    encryptedData = JSON.stringify({
-                                        wifiName: newEntry.wifiName,
-                                        wifiPassword: newEntry.wifiPassword,
-                                    });
-                                } else if (newEntry.entryType === "note") {
-                                    encryptedData = JSON.stringify({
-                                        note: newEntry.note,
-                                    });
-                                }
-
-                                // Call your API here with label, group, entryType, encryptedData
-                                // After saving, close the sheet and reset the form
-                                setAddSheetVisible(false);
-                                setNewEntry({
-                                    label: "",
-                                    group: "",
-                                    entryType: "login",
-                                    username: "",
-                                    password: "",
-                                    link: "",
-                                    note: "",
-                                    pin: "",
-                                    wifiName: "",
-                                    wifiPassword: "",
-                                });
-                            }}
+                            onPress={handleAddEntry}
                         >
                             <Text style={styles.saveButtonText}>Save</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             </CustomBottomSheet>
-        </>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    tabContainer: { padding: 10, height: "100%" },
     groupContainer: {
         marginBottom: 20,
     },
@@ -514,6 +620,13 @@ const styles = StyleSheet.create({
         fontSize: 20,
         marginBottom: 12,
     },
+    passwordInput: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 6,
+        padding: 10,
+        fontSize: 16,
+    },
     input: {
         borderWidth: 1,
         borderColor: "#ccc",
@@ -533,5 +646,30 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "bold",
         fontSize: 16,
+    },
+    floatingButton: {
+        position: "absolute",
+        bottom: 5,
+        right: 5,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: "#007AFF",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        elevation: 5, // for Android shadow
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        zIndex: 1,
+    },
+    floatingButtonText: {
+        color: "#fff",
+        fontSize: 32,
+        fontWeight: "bold",
+        textAlign: "center",
+        lineHeight: 36,
     },
 });

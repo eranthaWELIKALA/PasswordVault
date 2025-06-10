@@ -1,23 +1,29 @@
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { NavigationContainer } from "@react-navigation/native";
 import { useContext, useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    Button,
-    StyleSheet,
-    TouchableOpacity,
-    Settings,
-} from "react-native";
+import { Text } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useRouter } from "expo-router";
 import api from "../../services/api";
-import LogsTab from "./LogsTab"; // Adjust path as necessary
+import LogsTab from "./LogsTab";
 import SettingsTab from "./SettingsTab";
 import HomeTab from "./HomeTab";
+import { decryptObject } from "@/services/crypto";
+import { Ionicons } from "@expo/vector-icons";
+
+const Tab = createBottomTabNavigator();
 
 type VaultEntry = {
-    id: string;
+    _id?: string;
+    userId?: string;
+    deviceId?: string;
+    label: string;
+    entryType: String;
     group?: string;
-    title: string;
+    encryptedData?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    decryptedData?: Record<string, any>;
 };
 
 type LogItem = {
@@ -34,11 +40,9 @@ export default function HomeScreen() {
     const [loadingLogs, setLoadingLogs] = useState(false);
     const [vaultEntries, setVaultEntries] = useState<VaultEntry[]>([]);
     const [loadingVault, setLoadingVault] = useState(false);
-    const [activeTab, setActiveTab] = useState(0);
 
     useEffect(() => {
         if (!token) {
-            console.log("No token, redirecting to login");
             router.replace("/login");
             return;
         }
@@ -58,7 +62,10 @@ export default function HomeScreen() {
         const fetchVaultEntries = async () => {
             setLoadingVault(true);
             try {
-                const response = await api.get("/vault-entries");
+                const response = await api.get("/vault");
+                response.data.entries.map((entry: VaultEntry) => {
+                    entry.decryptedData = decryptObject(entry.encryptedData!);
+                });
                 setVaultEntries(response.data.entries);
             } catch (error) {
                 console.error("Failed to fetch vault entries:", error);
@@ -71,110 +78,49 @@ export default function HomeScreen() {
         fetchVaultEntries();
     }, [token]);
 
-    if (!token) {
-        return null; // or loading spinner
-    }
+    if (!token) return null;
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.welcome}>Welcome, {user?.email}</Text>
+        <Tab.Navigator
+            screenOptions={({ route }) => ({
+                tabBarIcon: ({ focused, color, size }) => {
+                    let iconName;
 
-            {/* Tabs */}
-            <View style={styles.tabBar}>
-                <TouchableOpacity
-                    style={[
-                        styles.tabButton,
-                        activeTab === 0 && styles.activeTab,
-                    ]}
-                    onPress={() => setActiveTab(0)}
-                >
-                    <Text
-                        style={
-                            activeTab === 0
-                                ? styles.activeTabText
-                                : styles.tabText
-                        }
-                    >
-                        Home
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[
-                        styles.tabButton,
-                        activeTab === 1 && styles.activeTab,
-                    ]}
-                    onPress={() => setActiveTab(1)}
-                >
-                    <Text
-                        style={
-                            activeTab === 1
-                                ? styles.activeTabText
-                                : styles.tabText
-                        }
-                    >
-                        Logs
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[
-                        styles.tabButton,
-                        activeTab === 2 && styles.activeTab,
-                    ]}
-                    onPress={() => setActiveTab(2)}
-                >
-                    <Text
-                        style={
-                            activeTab === 2
-                                ? styles.activeTabText
-                                : styles.tabText
-                        }
-                    >
-                        Settings
-                    </Text>
-                </TouchableOpacity>
-            </View>
+                    if (route.name === "Home") {
+                        iconName = focused ? "home" : "home-outline";
+                    } else if (route.name === "Logs") {
+                        iconName = focused ? "list" : "list-outline";
+                    } else if (route.name === "Settings") {
+                        iconName = focused ? "settings" : "settings-outline";
+                    }
 
-            <View style={styles.tabContent}>
-                {activeTab === 0 && (
-                    <HomeTab entries={vaultEntries} loading={loadingVault}  />
+                    return (
+                        <Ionicons
+                            name={iconName as any}
+                            size={size}
+                            color={color}
+                        />
+                    );
+                },
+                tabBarActiveTintColor: "blue",
+                tabBarInactiveTintColor: "gray",
+            })}
+        >
+            <Tab.Screen
+                name="Home"
+                options={{
+                    headerTitle: `Welcome${user?.name ? `, ${user.name}` : ""}`,
+                }}
+            >
+                {() => (
+                    <HomeTab entries={vaultEntries} loading={loadingVault} />
                 )}
-                {activeTab === 1 && (
-                    <LogsTab logs={logs} loading={loadingLogs} />
-                )}
-                {activeTab === 2 && <SettingsTab />}
-            </View>
-        </View>
+            </Tab.Screen>
+
+            <Tab.Screen name="Logs">
+                {() => <LogsTab logs={logs} loading={loadingLogs} />}
+            </Tab.Screen>
+            <Tab.Screen name="Settings" component={SettingsTab} />
+        </Tab.Navigator>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20 },
-    welcome: { fontSize: 18, marginBottom: 10 },
-    tabBar: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        marginVertical: 20,
-        borderBottomWidth: 1,
-        borderColor: "#ccc",
-    },
-    tabButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-    },
-    activeTab: {
-        borderBottomWidth: 3,
-        borderBottomColor: "blue",
-    },
-    tabText: {
-        fontSize: 16,
-        color: "#666",
-    },
-    activeTabText: {
-        fontSize: 16,
-        color: "blue",
-        fontWeight: "bold",
-    },
-    tabContent: {
-        flex: 1,
-    },
-});

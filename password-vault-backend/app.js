@@ -6,10 +6,12 @@ const auditRoutes = require("./routes/auditRoutes");
 const vaultEntryRoutes = require("./routes/vaultEntryRoutes");
 const connectDB = require("./config/db");
 const app = express();
+const cors = require('cors');
 
 dotenv.config();
 connectDB();
 
+app.use(cors());
 app.use(express.json());
 
 const limiter = rateLimit({
@@ -20,7 +22,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use("/api/auth", authRoutes);
-app.use("/api/audit", auditRoutes);
-app.use("/api/vault-entries", vaultEntryRoutes);
+app.use("/api/audit-logs", auditRoutes);
+app.use("/api/vault", vaultEntryRoutes);
 
 module.exports = app;

@@ -3,6 +3,6 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const { getLoginHistory } = require("../controllers/auditController");
 
-router.get("/login-history", auth, getLoginHistory);
+router.get("/", auth, getLoginHistory);
 
 module.exports = router;

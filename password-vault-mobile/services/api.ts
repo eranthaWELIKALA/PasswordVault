@@ -2,24 +2,30 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Device from "expo-device";
+
+const deviceId =
+    Device.osInternalBuildId ||
+    Device.osBuildId ||
+    Device.modelId ||
+    "unknown";
 
 const api = axios.create({
-    baseURL: 'http://192.168.8.173:4000/api', // Change this when testing on a real device
+    baseURL: 'http://localhost:4000/api',
 });
 
 api.interceptors.request.use(async (config) => {
-    console.log("+++")
     let token;
     if (Platform.OS === 'web') {
         token = await AsyncStorage.getItem('userToken');
     } else {
         token = await SecureStore.getItemAsync('userToken');
     }
-    console.log("****")
     if (token) {
         config.headers = config.headers ?? {};
         config.headers.Authorization = `Bearer ${token}`;
     }
+    config.headers['device-id'] = deviceId;
     return config;
 });
 
