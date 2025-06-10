@@ -1,7 +1,7 @@
 import { useState, useContext } from "react";
 import { View, TextInput, Button, StyleSheet, Text, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { AuthContext } from "../contexts/AuthContext";
+import { AuthContext } from "../../contexts/AuthContext";
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -12,9 +12,8 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         try {
-            console.log("=============");
             await signIn(email, password);
-            router.replace("/home");
+            router.replace("/");
         } catch (error: any) {
             Alert.alert("Login failed", error.message || "Please try again.");
         }

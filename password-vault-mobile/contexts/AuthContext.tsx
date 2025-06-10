@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../services/api"; // Use the axios instance here
+import SplashScreen from "@/components/SplashScreen";
 
 interface User {
     id: string;
@@ -27,11 +28,13 @@ export const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         // Load token & user from storage on app start
         (async () => {
             try {
+                console.log("reading pre-saved values");
                 const storedToken = await AsyncStorage.getItem("token");
                 const storedUser = await AsyncStorage.getItem("user");
                 if (storedToken && storedUser) {
@@ -44,15 +47,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
             } catch (error) {
                 console.error("Failed to load auth data from storage:", error);
+            } finally {
+                setIsLoading(false);
             }
         })();
     }, []);
 
     const signIn = async (email: string, password: string) => {
         try {
-          console.log("=====")
+            console.log("=====");
             const response = await api.post("/auth/login", { email, password });
-          console.log("=====")
+            console.log("=====");
 
             const { token: receivedToken, user: receivedUser } = response.data;
 
@@ -81,6 +86,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await AsyncStorage.removeItem("token");
         await AsyncStorage.removeItem("user");
     };
+
+    if (isLoading) {
+        return <SplashScreen />;
+    }
 
     return (
         <AuthContext.Provider value={{ user, token, signIn, signOut }}>

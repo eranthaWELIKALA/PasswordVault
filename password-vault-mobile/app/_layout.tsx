@@ -4,9 +4,10 @@ import {
     ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import { PortalProvider } from "@gorhom/portal";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { AuthProvider } from "../contexts/AuthContext";
@@ -17,29 +18,18 @@ export default function RootLayout() {
         SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     });
 
-    if (!loaded) {
-        return null;
-    }
+    if (!loaded) return null;
 
     return (
-        <AuthProvider>
-            <ThemeProvider
-                value={DefaultTheme}
-                // {colorScheme === "dark" ? DarkTheme : DefaultTheme}
-            >
-                <Stack>
-                    <Stack.Screen
-                        name="login"
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name="home"
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen name="+not-found" />
-                </Stack>
-                <StatusBar style="auto" />
-            </ThemeProvider>
-        </AuthProvider>
+        <PortalProvider>
+            <AuthProvider>
+                <ThemeProvider
+                    value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+                >
+                    <Slot />
+                    <StatusBar style="auto" />
+                </ThemeProvider>
+            </AuthProvider>
+        </PortalProvider>
     );
 }
