@@ -54,3 +54,16 @@ exports.deleteEntry = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
+
+exports.getGroups = async (req, res) => {
+    try {
+        const groups = await VaultEntry.distinct("group", {
+            userId: req.user._id,
+            group: { $nin: [null, ""] }, // filter out null and empty string
+        });
+        res.json({ success: true, groups });
+    } catch (error) {
+        console.error("Error fetching groups:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};

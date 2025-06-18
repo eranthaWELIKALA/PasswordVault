@@ -1,7 +1,5 @@
-import React, { useRef, useMemo, useState, useEffect } from "react";
-
-import { Picker } from "@react-native-picker/picker"; // npm install @react-native-picker/picker
-
+import React, { useState, useEffect } from "react";
+import { Picker } from "@react-native-picker/picker";
 import {
     View,
     Text,
@@ -11,7 +9,6 @@ import {
     TouchableOpacity,
     ScrollView,
     TextInput,
-    Button,
 } from "react-native";
 import CustomBottomSheet from "../../components/CustomBottomSheet";
 import { encryptObject } from "@/services/crypto";
@@ -35,9 +32,18 @@ type VaultEntry = {
 type Props = {
     entries: VaultEntry[];
     loading: boolean;
+    groups: string[];
+    loadingGroups: boolean;
+    refreshEntries: () => void;
 };
 
-export default function HomeTab({ entries, loading }: Props) {
+export default function HomeTab({
+    entries,
+    loading,
+    groups,
+    loadingGroups,
+    refreshEntries,
+}: Props) {
     const [visiblePasswords, setVisiblePasswords] = useState<
         Record<string, boolean>
     >({});
@@ -187,6 +193,7 @@ export default function HomeTab({ entries, loading }: Props) {
                     wifiName: "",
                     wifiPassword: "",
                 });
+                refreshEntries();
             } else {
                 alert("Failed to save entry.");
             }
@@ -207,6 +214,7 @@ export default function HomeTab({ entries, loading }: Props) {
                 updatedData
             );
             if (response.status === 200) {
+                refreshEntries();
                 alert("Updated successfully!");
                 setEditMode(false);
                 closeSheet();
@@ -262,146 +270,253 @@ export default function HomeTab({ entries, loading }: Props) {
                 heightPercent={0.85}
             >
                 {sheetEntry ? (
-                    <ScrollView
-                        contentContainerStyle={{
-                            padding: 16,
-                            paddingBottom: 80,
-                        }}
-                    >
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 8,
+                    <View style={{ flex: 1, flexDirection: "column" }}>
+                        <ScrollView
+                            contentContainerStyle={{
+                                padding: 10,
+                                paddingBottom: 80,
                             }}
                         >
-                            <Text style={styles.modalTitle}>
-                                {sheetEntry.label}
-                            </Text>
-                            {!editMode ? (
-                                <TouchableOpacity
-                                    onPress={() => setEditMode(true)}
-                                >
-                                    <Text style={{ color: "#007AFF" }}>
-                                        Edit
-                                    </Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <View style={{ flexDirection: "row", gap: 16 }}>
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <Text style={styles.modalTitle}>
+                                    {sheetEntry.label}
+                                </Text>
+                                {!editMode ? (
                                     <TouchableOpacity
-                                        onPress={() => {
-                                            setEditMode(false);
-                                            setEditableEntry(
-                                                sheetEntry.decryptedData || {}
-                                            );
-                                        }}
-                                    >
-                                        <Text style={{ color: "gray" }}>
-                                            Cancel
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        onPress={handleUpdateEntry}
+                                        onPress={() => setEditMode(true)}
                                     >
                                         <Text style={{ color: "#007AFF" }}>
-                                            Save
+                                            Edit
                                         </Text>
                                     </TouchableOpacity>
-                                </View>
-                            )}
-                        </View>
-
-                        {Object.entries(editableEntry).map(([key, value]) => {
-                            const isPassword = key.toLowerCase() === "password";
-                            const id = `${sheetEntry._id}_${key}`;
-                            const isVisible = visiblePasswords[id];
-
-                            if (editMode) {
-                                return (
-                                    <TextInput
-                                        key={key}
-                                        style={styles.input}
-                                        value={editableEntry[key]}
-                                        onChangeText={(text) =>
-                                            setEditableEntry((e) => ({
-                                                ...e,
-                                                [key]: text,
-                                            }))
-                                        }
-                                        placeholder={toPascalCase(key)}
-                                        secureTextEntry={
-                                            isPassword && !isVisible
-                                        }
-                                    />
-                                );
-                            }
-
-                            return (
-                                <>
-                                    {!isPassword && (
-                                        <Text
-                                            style={[styles.input, { flex: 1 }]}
-                                        >
-                                            {toPascalCase(key)}: {String(value)}
-                                        </Text>
-                                    )}
-
-                                    {isPassword && (
-                                        <View
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "row",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
-                                                paddingBottom: 12,
+                                ) : (
+                                    <View
+                                        style={{
+                                            flexDirection: "row",
+                                            gap: 16,
+                                        }}
+                                    >
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                setEditMode(false);
+                                                setEditableEntry(
+                                                    sheetEntry.decryptedData ||
+                                                        {}
+                                                );
                                             }}
                                         >
-                                            <Text
-                                                style={[
-                                                    styles.passwordInput,
-                                                    {
-                                                        flex: 1,
+                                            <Text style={{ color: "gray" }}>
+                                                Cancel
+                                            </Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={handleUpdateEntry}
+                                        >
+                                            <Text style={{ color: "#007AFF" }}>
+                                                Save
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                            </View>
+
+                            {Object.entries(editableEntry).map(
+                                ([key, value]) => {
+                                    const isPassword =
+                                        key.toLowerCase() === "password";
+                                    const id = `${sheetEntry._id}_${key}`;
+                                    const isVisible = visiblePasswords[id];
+
+                                    if (editMode) {
+                                        return (
+                                            <>
+                                                {!isPassword && (
+                                                    <TextInput
+                                                        key={key}
+                                                        style={styles.input}
+                                                        value={
+                                                            editableEntry[key]
+                                                        }
+                                                        onChangeText={(text) =>
+                                                            setEditableEntry(
+                                                                (e) => ({
+                                                                    ...e,
+                                                                    [key]: text,
+                                                                })
+                                                            )
+                                                        }
+                                                        placeholder={toPascalCase(
+                                                            key
+                                                        )}
+                                                        secureTextEntry={
+                                                            isPassword &&
+                                                            !isVisible
+                                                        }
+                                                    />
+                                                )}
+                                                {isPassword && (
+                                                    <View
+                                                        style={{
+                                                            flexDirection:
+                                                                "row",
+                                                            alignItems:
+                                                                "center",
+                                                            marginBottom: 12,
+                                                        }}
+                                                    >
+                                                        <TextInput
+                                                            key={key}
+                                                            style={[
+                                                                styles.input,
+                                                                {
+                                                                    flex: 1,
+                                                                    marginBottom: 0,
+                                                                },
+                                                            ]}
+                                                            value={
+                                                                editableEntry[
+                                                                    key
+                                                                ]
+                                                            }
+                                                            onChangeText={(
+                                                                text
+                                                            ) =>
+                                                                setEditableEntry(
+                                                                    (e) => ({
+                                                                        ...e,
+                                                                        [key]: text,
+                                                                    })
+                                                                )
+                                                            }
+                                                            placeholder={toPascalCase(
+                                                                key
+                                                            )}
+                                                            secureTextEntry={
+                                                                isPassword &&
+                                                                !isVisible
+                                                            }
+                                                        />
+                                                        <View
+                                                            style={{
+                                                                display: "flex",
+                                                                flexDirection:
+                                                                    "row",
+                                                                justifyContent:
+                                                                    "center",
+                                                                alignItems:
+                                                                    "center",
+                                                                padding: 8,
+                                                            }}
+                                                        >
+                                                            <Text
+                                                                onPress={() =>
+                                                                    togglePasswordVisibility(
+                                                                        sheetEntry._id!,
+                                                                        key
+                                                                    )
+                                                                }
+                                                                style={{
+                                                                    color: "#007AFF",
+                                                                    fontSize: 18,
+                                                                }}
+                                                            >
+                                                                {isVisible
+                                                                    ? "🙈"
+                                                                    : "👁️"}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                )}
+                                            </>
+                                        );
+                                    }
+
+                                    return (
+                                        <>
+                                            {!isPassword && (
+                                                <Text
+                                                    style={[
+                                                        styles.input,
+                                                        { flex: 1 },
+                                                    ]}
+                                                >
+                                                    {toPascalCase(key)}:{" "}
+                                                    {String(value)}
+                                                </Text>
+                                            )}
+
+                                            {isPassword && (
+                                                <View
+                                                    style={{
                                                         display: "flex",
                                                         flexDirection: "row",
-                                                    },
-                                                ]}
-                                            >
-                                                {toPascalCase(key)}:{" "}
-                                                {isPassword && !isVisible
-                                                    ? "••••••"
-                                                    : String(value)}
-                                            </Text>
-                                            <View
-                                                style={{
-                                                    display: "flex",
-                                                    flexDirection: "row",
-                                                    justifyContent: "center",
-                                                    alignItems: "center",
-                                                    padding: 8,
-                                                }}
-                                            >
-                                                <Text
-                                                    onPress={() =>
-                                                        togglePasswordVisibility(
-                                                            sheetEntry._id!,
-                                                            key
-                                                        )
-                                                    }
-                                                    style={{
-                                                        color: "#007AFF",
-                                                        fontSize: 18,
+                                                        justifyContent:
+                                                            "space-between",
+                                                        alignItems: "center",
+                                                        paddingBottom: 12,
                                                     }}
                                                 >
-                                                    {isVisible ? "🙈" : "👁️"}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    )}
-                                </>
-                            );
-                        })}
-                    </ScrollView>
+                                                    <Text
+                                                        style={[
+                                                            styles.passwordInput,
+                                                            {
+                                                                flex: 1,
+                                                                display: "flex",
+                                                                flexDirection:
+                                                                    "row",
+                                                            },
+                                                        ]}
+                                                    >
+                                                        {toPascalCase(key)}:{" "}
+                                                        {isPassword &&
+                                                        !isVisible
+                                                            ? "••••••"
+                                                            : String(value)}
+                                                    </Text>
+                                                    <View
+                                                        style={{
+                                                            display: "flex",
+                                                            flexDirection:
+                                                                "row",
+                                                            justifyContent:
+                                                                "center",
+                                                            alignItems:
+                                                                "center",
+                                                            padding: 8,
+                                                        }}
+                                                    >
+                                                        <Text
+                                                            onPress={() =>
+                                                                togglePasswordVisibility(
+                                                                    sheetEntry._id!,
+                                                                    key
+                                                                )
+                                                            }
+                                                            style={{
+                                                                color: "#007AFF",
+                                                                fontSize: 18,
+                                                            }}
+                                                        >
+                                                            {isVisible
+                                                                ? "🙈"
+                                                                : "👁️"}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                            )}
+                                        </>
+                                    );
+                                }
+                            )}
+                        </ScrollView>
+                    </View>
                 ) : (
                     <Text style={{ textAlign: "center", marginTop: 20 }}>
                         Select an entry to view details.
@@ -417,7 +532,10 @@ export default function HomeTab({ entries, loading }: Props) {
             >
                 <View style={{ flex: 1, flexDirection: "column" }}>
                     <ScrollView
-                        contentContainerStyle={{ paddingBottom: 80 }}
+                        contentContainerStyle={{
+                            padding: 10,
+                            paddingBottom: 80,
+                        }}
                         keyboardShouldPersistTaps="handled"
                     >
                         <Text style={styles.modalTitle}>Add New Entry</Text>
@@ -429,14 +547,23 @@ export default function HomeTab({ entries, loading }: Props) {
                             }
                             placeholder="Label"
                         />
-                        <TextInput
-                            style={styles.input}
-                            value={newEntry.group}
-                            onChangeText={(text) =>
-                                setNewEntry((e) => ({ ...e, group: text }))
+                        <Text style={{ marginBottom: 4 }}>Group</Text>
+                        <Picker
+                            selectedValue={newEntry.group}
+                            onValueChange={(value) =>
+                                setNewEntry((e) => ({ ...e, group: value }))
                             }
-                            placeholder="Group"
-                        />
+                            style={styles.input}
+                        >
+                            <Picker.Item label="Select a group..." value="" />
+                            {groups.map((group, index) => (
+                                <Picker.Item
+                                    key={index}
+                                    label={group}
+                                    value={group}
+                                />
+                            ))}
+                        </Picker>
                         <Text style={{ marginBottom: 4 }}>Entry Type</Text>
                         <Picker
                             selectedValue={newEntry.entryType}

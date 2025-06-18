@@ -1,7 +1,7 @@
 const User = require("../models/User");
-const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const AuditLog = require("../models/AuditLog");
+const { matchPassword } = require("../utils/commonUtils");
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -25,7 +25,7 @@ exports.loginUser = async (req, res) => {
             });
         }
 
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
+        const isMatch = await matchPassword(password, user.passwordHash);
 
         if (!isMatch) {
             user.failedLoginAttempts += 1;

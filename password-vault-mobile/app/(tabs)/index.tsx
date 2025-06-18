@@ -1,7 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { NavigationContainer } from "@react-navigation/native";
 import { useContext, useEffect, useState } from "react";
-import { Text } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useRouter } from "expo-router";
 import api from "../../services/api";
@@ -40,6 +38,47 @@ export default function HomeScreen() {
     const [loadingLogs, setLoadingLogs] = useState(false);
     const [vaultEntries, setVaultEntries] = useState<VaultEntry[]>([]);
     const [loadingVault, setLoadingVault] = useState(false);
+    const [groups, setGroups] = useState<string[]>([]);
+    const [loadingGroups, setLoadingGroups] = useState(false);
+
+    const fetchLogs = async () => {
+        setLoadingLogs(true);
+        try {
+            const response = await api.get("/audit-logs");
+            setLogs(response.data.logs);
+        } catch (error) {
+            console.error("Failed to fetch logs:", error);
+        } finally {
+            setLoadingLogs(false);
+        }
+    };
+
+    const fetchVaultEntries = async () => {
+        setLoadingVault(true);
+        try {
+            const response = await api.get("/vault");
+            response.data.entries.map((entry: VaultEntry) => {
+                entry.decryptedData = decryptObject(entry.encryptedData!);
+            });
+            setVaultEntries(response.data.entries);
+        } catch (error) {
+            console.error("Failed to fetch vault entries:", error);
+        } finally {
+            setLoadingVault(false);
+        }
+    };
+
+    const fetchGroups = async () => {
+        setLoadingGroups(true);
+        try {
+            const response = await api.get("/vault/groups");
+            setGroups(response.data.groups);
+        } catch (error) {
+            console.error("Failed to fetch groups:", error);
+        } finally {
+            setLoadingGroups(false);
+        }
+    };
 
     useEffect(() => {
         if (!token) {
@@ -47,35 +86,9 @@ export default function HomeScreen() {
             return;
         }
 
-        const fetchLogs = async () => {
-            setLoadingLogs(true);
-            try {
-                const response = await api.get("/audit-logs");
-                setLogs(response.data.logs);
-            } catch (error) {
-                console.error("Failed to fetch logs:", error);
-            } finally {
-                setLoadingLogs(false);
-            }
-        };
-
-        const fetchVaultEntries = async () => {
-            setLoadingVault(true);
-            try {
-                const response = await api.get("/vault");
-                response.data.entries.map((entry: VaultEntry) => {
-                    entry.decryptedData = decryptObject(entry.encryptedData!);
-                });
-                setVaultEntries(response.data.entries);
-            } catch (error) {
-                console.error("Failed to fetch vault entries:", error);
-            } finally {
-                setLoadingVault(false);
-            }
-        };
-
         fetchLogs();
         fetchVaultEntries();
+        fetchGroups();
     }, [token]);
 
     if (!token) return null;
@@ -113,7 +126,13 @@ export default function HomeScreen() {
                 }}
             >
                 {() => (
-                    <HomeTab entries={vaultEntries} loading={loadingVault} />
+                    <HomeTab
+                        entries={vaultEntries}
+                        loading={loadingVault}
+                        groups={groups}
+                        loadingGroups={loadingGroups}
+                        refreshEntries={fetchVaultEntries}
+                    />
                 )}
             </Tab.Screen>
 

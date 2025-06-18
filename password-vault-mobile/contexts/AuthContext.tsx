@@ -1,7 +1,8 @@
 import React, { createContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api from "../services/api"; // Use the axios instance here
+import api from "../services/api";
 import SplashScreen from "@/components/SplashScreen";
+import { isTokenValid } from "../utils/commonUtils";
 
 interface User {
     id: string;
@@ -37,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 console.log("reading pre-saved values");
                 const storedToken = await AsyncStorage.getItem("token");
                 const storedUser = await AsyncStorage.getItem("user");
-                if (storedToken && storedUser) {
+                if (storedToken && isTokenValid(storedToken) && storedUser) {
                     setToken(storedToken);
                     setUser(JSON.parse(storedUser));
                     // Also set token to axios default headers for persistence on reload
