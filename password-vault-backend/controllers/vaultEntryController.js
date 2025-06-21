@@ -1,3 +1,4 @@
+const Group = require("../models/Group");
 const VaultEntry = require("../models/VaultEntry");
 
 exports.createEntry = async (req, res) => {
@@ -64,6 +65,20 @@ exports.getGroups = async (req, res) => {
         res.json({ success: true, groups });
     } catch (error) {
         console.error("Error fetching groups:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+exports.createGroup = async (req, res) => {
+    try {
+        const newGroup = new Group({
+            userId: req.user._id,
+            group: req.body.group,
+        });
+        await newGroup.save();
+        res.status(201).json({ success: true, group: newGroup });
+    } catch (error) {
+        console.error("Error creating group:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };

@@ -8,5 +8,6 @@ router.get("/", auth, vaultEntryController.getAllEntries);
 router.put("/:id", auth, vaultEntryController.updateEntry);
 router.delete("/:id", auth, vaultEntryController.deleteEntry);
 router.get("/groups", auth, vaultEntryController.getGroups);
+router.post("/groups", auth, vaultEntryController.createGroup);
 
 module.exports = router;

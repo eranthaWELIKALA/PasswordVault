@@ -11,7 +11,7 @@ const deviceId =
     "unknown";
 
 const api = axios.create({
-    baseURL: 'http://localhost:4000/api',
+    baseURL: 'http://192.168.8.173:4000/api',
 });
 
 api.interceptors.request.use(async (config) => {

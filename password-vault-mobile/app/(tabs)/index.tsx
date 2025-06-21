@@ -1,84 +1,29 @@
+import { useGroups } from "@/hooks/useGroups";
+import { useLogs } from "@/hooks/useLogs";
+import { useVault } from "@/hooks/useVault";
+import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../../contexts/AuthContext";
 import { useRouter } from "expo-router";
-import api from "../../services/api";
+import { useContext, useEffect } from "react";
+import { AuthContext } from "../../contexts/AuthContext";
+import HomeTab from "./HomeTab";
 import LogsTab from "./LogsTab";
 import SettingsTab from "./SettingsTab";
-import HomeTab from "./HomeTab";
-import { decryptObject } from "@/services/crypto";
-import { Ionicons } from "@expo/vector-icons";
 
 const Tab = createBottomTabNavigator();
-
-type VaultEntry = {
-    _id?: string;
-    userId?: string;
-    deviceId?: string;
-    label: string;
-    entryType: String;
-    group?: string;
-    encryptedData?: string;
-    createdAt?: string;
-    updatedAt?: string;
-    decryptedData?: Record<string, any>;
-};
-
-type LogItem = {
-    _id: string;
-    timestamp: string;
-    success: boolean;
-    reason: string;
-};
 
 export default function HomeScreen() {
     const { user, signOut, token } = useContext(AuthContext);
     const router = useRouter();
-    const [logs, setLogs] = useState<LogItem[]>([]);
-    const [loadingLogs, setLoadingLogs] = useState(false);
-    const [vaultEntries, setVaultEntries] = useState<VaultEntry[]>([]);
-    const [loadingVault, setLoadingVault] = useState(false);
-    const [groups, setGroups] = useState<string[]>([]);
-    const [loadingGroups, setLoadingGroups] = useState(false);
-
-    const fetchLogs = async () => {
-        setLoadingLogs(true);
-        try {
-            const response = await api.get("/audit-logs");
-            setLogs(response.data.logs);
-        } catch (error) {
-            console.error("Failed to fetch logs:", error);
-        } finally {
-            setLoadingLogs(false);
-        }
-    };
-
-    const fetchVaultEntries = async () => {
-        setLoadingVault(true);
-        try {
-            const response = await api.get("/vault");
-            response.data.entries.map((entry: VaultEntry) => {
-                entry.decryptedData = decryptObject(entry.encryptedData!);
-            });
-            setVaultEntries(response.data.entries);
-        } catch (error) {
-            console.error("Failed to fetch vault entries:", error);
-        } finally {
-            setLoadingVault(false);
-        }
-    };
-
-    const fetchGroups = async () => {
-        setLoadingGroups(true);
-        try {
-            const response = await api.get("/vault/groups");
-            setGroups(response.data.groups);
-        } catch (error) {
-            console.error("Failed to fetch groups:", error);
-        } finally {
-            setLoadingGroups(false);
-        }
-    };
+    const {
+        entries: vaultEntries,
+        loading: loadingVault,
+        fetchEntries,
+        addEntry,
+        updateEntry,
+    } = useVault();
+    const { groups, loading: loadingGroups, fetchGroups } = useGroups();
+    const { logs, loading: loadingLogs, fetchLogs } = useLogs();
 
     useEffect(() => {
         if (!token) {
@@ -87,7 +32,7 @@ export default function HomeScreen() {
         }
 
         fetchLogs();
-        fetchVaultEntries();
+        fetchEntries();
         fetchGroups();
     }, [token]);
 
@@ -131,7 +76,7 @@ export default function HomeScreen() {
                         loading={loadingVault}
                         groups={groups}
                         loadingGroups={loadingGroups}
-                        refreshEntries={fetchVaultEntries}
+                        refreshEntries={fetchEntries}
                     />
                 )}
             </Tab.Screen>
