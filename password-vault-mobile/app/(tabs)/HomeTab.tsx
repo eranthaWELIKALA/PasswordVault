@@ -1,12 +1,12 @@
 import AddEntrySheet from "@/components/home-tab-uis/AddEntrySheet";
 import AddGroupSheet from "@/components/home-tab-uis/AddGroupSheet";
 import Dashboard from "@/components/home-tab-uis/Dashboard";
-import EntryDetailSheet from "@/components/home-tab-uis/EntryDetailSheet";
 import FloatingActionButton from "@/components/ui/FloatingActionButton";
 import api from "@/services/api";
 import { encryptObject } from "@/services/crypto";
+import { Group } from "@/utils/dataTypes";
 import { HttpStatusCode } from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 type VaultEntry = {
@@ -25,7 +25,7 @@ type VaultEntry = {
 type Props = {
     entries: VaultEntry[];
     loading: boolean;
-    groups: string[];
+    groups: Group[];
     loadingGroups: boolean;
     refreshEntries: () => void;
     refreshGroups: () => void;
@@ -39,15 +39,9 @@ export default function HomeTab({
     refreshEntries,
     refreshGroups,
 }: Props) {
-    const [visiblePasswords, setVisiblePasswords] = useState<
-        Record<string, boolean>
-    >({});
-    const [sheetVisible, setSheetVisible] = useState(false);
-    const [sheetEntry, setSheetEntry] = useState<VaultEntry | null>(null);
-    const [editMode, setEditMode] = useState(false);
-    const [editableEntry, setEditableEntry] = useState<Record<string, string>>(
-        {}
-    );
+    // const [visiblePasswords, setVisiblePasswords] = useState<
+    //     Record<string, boolean>
+    // >({});
 
     // Add Group Sheet State
     const [addGroupSheetVisible, setAddGroupSheetVisible] = useState(false);
@@ -70,16 +64,6 @@ export default function HomeTab({
 
     const [showAddPassword, setShowAddPassword] = useState(false);
 
-    useEffect(() => {
-        if (sheetEntry?.decryptedData) {
-            try {
-                setEditableEntry(sheetEntry.decryptedData);
-            } catch {
-                setEditableEntry({});
-            }
-        }
-    }, [sheetEntry]);
-
     if (loading) {
         return (
             <ActivityIndicator
@@ -98,29 +82,6 @@ export default function HomeTab({
         groups[groupName].push(entry);
         return groups;
     }, {} as Record<string, VaultEntry[]>);
-
-    function toPascalCase(str: string) {
-        return str.replace(/(^\w|_\w)/g, (match) =>
-            match.replace("_", "").toUpperCase()
-        );
-    }
-
-    const togglePasswordVisibility = (entryId: string, key: string) => {
-        const id = `${entryId}_${key}`;
-        setVisiblePasswords((prev) => ({
-            ...prev,
-            [id]: !prev[id],
-        }));
-    };
-
-    const openSheet = (entry: VaultEntry) => {
-        setSheetEntry(entry);
-        setSheetVisible(true);
-    };
-    const closeSheet = () => {
-        setSheetVisible(false);
-        setSheetEntry(null);
-    };
 
     const handleAddGroup = async () => {
         // Validate required fields
@@ -228,29 +189,6 @@ export default function HomeTab({
         }
     };
 
-    const handleUpdateEntry = async () => {
-        try {
-            const updatedData = {
-                ...sheetEntry,
-                encryptedData: encryptObject(editableEntry),
-            };
-            const response = await api.put(
-                `vault/${sheetEntry?._id}`,
-                updatedData
-            );
-            if (response.status === 200) {
-                refreshEntries();
-                alert("Updated successfully!");
-                setEditMode(false);
-                closeSheet();
-            } else {
-                alert("Failed to update.");
-            }
-        } catch (err) {
-            alert("Error updating entry.");
-        }
-    };
-
     return (
         <View style={styles.tabContainer}>
             <FloatingActionButton onPress={() => setAddSheetVisible(true)} />
@@ -258,15 +196,9 @@ export default function HomeTab({
             <Dashboard
                 groups={groups}
                 groupedEntries={groupedEntries}
-                onEntryPress={openSheet}
-                toPascalCase={toPascalCase}
+                refreshEntries={refreshEntries}
                 setAddGroupSheetVisible={setAddGroupSheetVisible}
             />
-            {/* <EntryList
-                groupedEntries={groupedEntries}
-                onEntryPress={openSheet}
-                toPascalCase={toPascalCase}
-            /> */}
 
             <AddGroupSheet
                 visible={addGroupSheetVisible}
@@ -274,24 +206,6 @@ export default function HomeTab({
                 newGroup={newGroup}
                 setNewGroup={setNewGroup}
                 handleAddGroup={handleAddGroup}
-            />
-
-            {/* View Entry Bottom Sheet */}
-            <EntryDetailSheet
-                visible={sheetVisible}
-                onClose={() => {
-                    setEditMode(false);
-                    closeSheet();
-                }}
-                sheetEntry={sheetEntry}
-                editMode={editMode}
-                setEditMode={setEditMode}
-                editableEntry={editableEntry}
-                setEditableEntry={setEditableEntry}
-                handleUpdateEntry={handleUpdateEntry}
-                visiblePasswords={visiblePasswords}
-                togglePasswordVisibility={togglePasswordVisibility}
-                toPascalCase={toPascalCase}
             />
 
             {/* Add Entry Bottom Sheet */}

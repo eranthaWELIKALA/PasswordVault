@@ -1,11 +1,10 @@
 import React from "react";
 import {
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import CustomBottomSheet from "../CustomBottomSheet";
 
@@ -30,15 +29,13 @@ export default function AddGroupSheet({
         <CustomBottomSheet
             visible={visible}
             onClose={onClose}
-            heightPercent={0.85}
+            heightPercent={0.4}
         >
             <View style={{ flex: 1, flexDirection: "column" }}>
-                <ScrollView
-                    contentContainerStyle={{
-                        padding: 10,
-                        paddingBottom: 80,
+                <View
+                    style={{
+                        padding: 10
                     }}
-                    keyboardShouldPersistTaps="handled"
                 >
                     <Text style={styles.modalTitle}>Add New Group</Text>
                     <TextInput
@@ -47,7 +44,7 @@ export default function AddGroupSheet({
                         onChangeText={(text) => setNewGroup(text)}
                         placeholder="Group name"
                     />
-                </ScrollView>
+                </View>
                 <View style={{ padding: 16, backgroundColor: "#fff" }}>
                     <TouchableOpacity
                         style={styles.saveButton}

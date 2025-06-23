@@ -1,5 +1,12 @@
+import { RootState } from "@/redux/store";
+import { setSelectedGroup } from "@/redux/vaultSlice";
+import { toPascalCase } from "@/utils/commonUtils";
+import { Group } from "@/utils/dataTypes";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { FlatList, Pressable, StyleSheet, Text } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import EntryList from "./EntryList";
 
 type VaultEntry = {
     _id?: string;
@@ -14,74 +21,132 @@ type VaultEntry = {
     updatedAt?: string;
 };
 
-type GroupItem = { type: "group"; groupName: string } | { type: "add" };
+type GroupItem = { type: "group"; group: Group } | { type: "add" };
 
 type Props = {
-    groups: string[];
+    groups: Group[];
     groupedEntries: Record<string, VaultEntry[]>;
-    onEntryPress: (entry: VaultEntry) => void;
-    toPascalCase: (str: string) => string;
+    refreshEntries: () => void;
     setAddGroupSheetVisible: (visible: boolean) => void;
 };
 
-export default function EntryList({
+export default function Dashboard({
     groups,
     groupedEntries,
-    onEntryPress,
-    toPascalCase,
-    setAddGroupSheetVisible
+    refreshEntries,
+    setAddGroupSheetVisible,
 }: Props) {
+    const selectedGroup = useSelector(
+        (state: RootState) => state.vault.selectedGroup
+    );
+    const dispatch = useDispatch();
+    const groupEntries = selectedGroup
+        ? groupedEntries[selectedGroup._id] || []
+        : [];
+    if (selectedGroup) {
+        return (
+            <React.Fragment>
+                <LinearGradient
+                    colors={["#48dbfb", "#fff"]}
+                    style={[StyleSheet.absoluteFillObject, styles.container]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                >
+                    <Pressable
+                        onPress={() => dispatch(setSelectedGroup(null))}
+                        style={{ margin: 12 }}
+                    >
+                        <Text style={{ color: "#007AFF", fontWeight: "bold" }}>
+                            ← Go back to Dashboard
+                        </Text>
+                    </Pressable>
+                    <EntryList
+                        group={selectedGroup}
+                        groupedEntries={groupEntries}
+                        refreshEntries={refreshEntries}
+                    />
+                </LinearGradient>
+            </React.Fragment>
+        );
+    }
+
     const formattedGroups: GroupItem[] = [
-        ...Object.keys(groupedEntries).map((groupName) => ({
-            type: "group" as const, // 👈 ensures type is exactly "group"
-            groupName,
+        ...groups.map((groupItem: Group) => ({
+            type: "group" as const,
+            group: groupItem,
         })),
         { type: "add" },
     ];
     return (
         <>
-            <FlatList
-                data={formattedGroups}
-                keyExtractor={(item, index) =>
-                    item.type === "add" ? "create_group" : item.groupName
-                }
-                numColumns={2}
-                contentContainerStyle={{ padding: 10 }}
-                columnWrapperStyle={{
-                    justifyContent: "space-between",
-                    marginBottom: 12,
-                }}
-                renderItem={({ item }) => {
-                    if (item.type === "add") {
+            <LinearGradient
+                colors={["#48dbfb", "#fff"]}
+                style={[StyleSheet.absoluteFillObject, styles.container]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            >
+                <FlatList
+                    data={formattedGroups}
+                    keyExtractor={(item, index) =>
+                        item.type === "add" ? "create_group" : item.group.group
+                    }
+                    numColumns={2}
+                    contentContainerStyle={styles.flatListContent}
+                    columnWrapperStyle={{
+                        justifyContent: "space-between",
+                        marginBottom: 12,
+                    }}
+                    renderItem={({ item }) => {
+                        if (item.type === "add") {
+                            return (
+                                <Pressable
+                                    onPress={() =>
+                                        setAddGroupSheetVisible(true)
+                                    } // or whatever logic you use
+                                    style={styles.createBox}
+                                >
+                                    <Text style={styles.createText}>
+                                        + Add Group
+                                    </Text>
+                                </Pressable>
+                            );
+                        }
+
                         return (
                             <Pressable
-                                onPress={() => setAddGroupSheetVisible(true)} // or whatever logic you use
-                                style={styles.createBox}
+                                onPress={() =>
+                                    dispatch(setSelectedGroup(item.group))
+                                }
+                                style={styles.groupBox}
                             >
-                                <Text style={styles.createText}>
-                                    + Add Group
+                                <Text style={styles.groupText}>
+                                    {toPascalCase(item.group.group)}
                                 </Text>
                             </Pressable>
                         );
-                    }
-
-                    return (
-                        <Pressable
-                            // onPress={() => openGroupSheet(item.groupName)}
-                            style={styles.groupBox}
-                        >
-                            <Text style={styles.groupText}>
-                                {toPascalCase(item.groupName)}
-                            </Text>
-                        </Pressable>
-                    );
-                }}
-            />
+                    }}
+                />
+            </LinearGradient>
         </>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        width: "100%",
+        flex: 1,
+    },
+    flatListContent: {
+        padding: 0,
+        paddingHorizontal: 12,
+        paddingTop: 16,
+        paddingBottom: 32, // if you want space at the bottom
+    },
+    title: {
+        fontSize: 28,
+        color: "white",
+        fontWeight: "bold",
+    },
     groupContainer: { marginBottom: 20 },
     groupTitle: { fontWeight: "bold", fontSize: 18, marginBottom: 8 },
     entry: {

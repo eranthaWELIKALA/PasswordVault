@@ -1,3 +1,4 @@
+import { toPascalCase } from "@/utils/commonUtils";
 import React from "react";
 import {
     ScrollView,
@@ -22,7 +23,6 @@ type Props = {
     handleUpdateEntry: () => void;
     visiblePasswords: Record<string, boolean>;
     togglePasswordVisibility: (entryId: string, key: string) => void;
-    toPascalCase: (str: string) => string;
 };
 
 export default function EntryDetailSheet({
@@ -35,8 +35,7 @@ export default function EntryDetailSheet({
     setEditableEntry,
     handleUpdateEntry,
     visiblePasswords,
-    togglePasswordVisibility,
-    toPascalCase,
+    togglePasswordVisibility
 }: Props) {
     // ...copy the relevant JSX from your HomeTab here...
     // (You can move the ScrollView and its children here)
@@ -50,8 +49,7 @@ export default function EntryDetailSheet({
                 <View style={{ flex: 1, flexDirection: "column" }}>
                     <ScrollView
                         contentContainerStyle={{
-                            padding: 10,
-                            paddingBottom: 80,
+                            padding: 10
                         }}
                     >
                         <View

@@ -1,3 +1,4 @@
+import { Group } from "@/utils/dataTypes";
 import { Picker } from "@react-native-picker/picker";
 import React from "react";
 import {
@@ -15,7 +16,7 @@ type Props = {
     onClose: () => void;
     newEntry: any;
     setNewEntry: React.Dispatch<React.SetStateAction<any>>;
-    groups: string[];
+    groups: Group[];
     showAddPassword: boolean;
     setShowAddPassword: (v: boolean) => void;
     handleAddEntry: () => void;
@@ -42,8 +43,7 @@ export default function AddEntrySheet({
             <View style={{ flex: 1, flexDirection: "column" }}>
                 <ScrollView
                     contentContainerStyle={{
-                        padding: 10,
-                        paddingBottom: 80,
+                        padding: 10
                     }}
                     keyboardShouldPersistTaps="handled"
                 >
@@ -65,11 +65,11 @@ export default function AddEntrySheet({
                         style={styles.input}
                     >
                         <Picker.Item label="Select a group..." value="" />
-                        {groups.map((group, index) => (
+                        {groups.map((el) => (
                             <Picker.Item
-                                key={index}
-                                label={group}
-                                value={group}
+                                key={el._id}
+                                label={el.group}
+                                value={el._id}
                             />
                         ))}
                     </Picker>

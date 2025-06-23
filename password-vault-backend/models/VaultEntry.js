@@ -9,7 +9,7 @@ const vaultEntrySchema = new mongoose.Schema({
         enum: ["login", "card_pin", "wifi", "note"],
         required: true,
     },
-    group: { type: String, default: "default" }, // e.g., "office", "personal"
+    groupId: { type: mongoose.Schema.Types.ObjectId, ref: "Group" }, // e.g., "office", "personal"
 
     encryptedData: { type: String, required: true }, // Encrypted JSON blob
 

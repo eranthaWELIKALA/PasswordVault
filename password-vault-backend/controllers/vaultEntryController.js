@@ -58,10 +58,9 @@ exports.deleteEntry = async (req, res) => {
 
 exports.getGroups = async (req, res) => {
     try {
-        const groups = await VaultEntry.distinct("group", {
-            userId: req.user._id,
-            group: { $nin: [null, ""] }, // filter out null and empty string
-        });
+        const groups = await Group.find({
+            userId: req.user._id
+        }).lean();
         res.json({ success: true, groups });
     } catch (error) {
         console.error("Error fetching groups:", error);

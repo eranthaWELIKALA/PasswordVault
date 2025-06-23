@@ -1,8 +1,9 @@
 import api from "@/services/api";
+import { Group } from "@/utils/dataTypes";
 import { useCallback, useState } from "react";
 
 export function useGroups() {
-    const [groups, setGroups] = useState<string[]>([]);
+    const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(false);
 
     const fetchGroups = useCallback(async () => {

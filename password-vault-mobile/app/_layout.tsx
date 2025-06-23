@@ -1,15 +1,16 @@
+import { PortalProvider } from "@gorhom/portal";
 import {
-    DarkTheme,
     DefaultTheme,
-    ThemeProvider,
+    ThemeProvider
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
-import { PortalProvider } from "@gorhom/portal";
+import { Provider } from "react-redux";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { store } from "@/redux/store";
 import { AuthProvider } from "../contexts/AuthContext";
 
 export default function RootLayout() {
@@ -21,16 +22,18 @@ export default function RootLayout() {
     if (!loaded) return null;
 
     return (
-        <PortalProvider>
-            <AuthProvider>
-                <ThemeProvider
-                    // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-                    value={DefaultTheme}
-                >
-                    <Slot />
-                    <StatusBar style="auto" />
-                </ThemeProvider>
-            </AuthProvider>
-        </PortalProvider>
+        <Provider store={store}>
+            <PortalProvider>
+                <AuthProvider>
+                    <ThemeProvider
+                        // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+                        value={DefaultTheme}
+                    >
+                        <Slot />
+                        <StatusBar style="auto" />
+                    </ThemeProvider>
+                </AuthProvider>
+            </PortalProvider>
+        </Provider>
     );
 }

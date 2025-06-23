@@ -77,6 +77,7 @@ export default function HomeScreen() {
                         groups={groups}
                         loadingGroups={loadingGroups}
                         refreshEntries={fetchEntries}
+                        refreshGroups={fetchGroups}
                     />
                 )}
             </Tab.Screen>
