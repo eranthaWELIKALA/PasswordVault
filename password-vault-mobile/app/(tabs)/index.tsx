@@ -3,8 +3,10 @@ import { useLogs } from "@/hooks/useLogs";
 import { useVault } from "@/hooks/useVault";
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useContext, useEffect } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../contexts/AuthContext";
 import HomeTab from "./HomeTab";
 import LogsTab from "./LogsTab";
@@ -39,53 +41,93 @@ export default function HomeScreen() {
     if (!token) return null;
 
     return (
-        <Tab.Navigator
-            screenOptions={({ route }) => ({
-                tabBarIcon: ({ focused, color, size }) => {
-                    let iconName;
+        <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+            <Tab.Navigator
+                screenOptions={({ route }) => ({
+                    tabBarIcon: ({ focused, color, size }) => {
+                        let iconName;
 
-                    if (route.name === "Home") {
-                        iconName = focused ? "home" : "home-outline";
-                    } else if (route.name === "Logs") {
-                        iconName = focused ? "list" : "list-outline";
-                    } else if (route.name === "Settings") {
-                        iconName = focused ? "settings" : "settings-outline";
-                    }
+                        if (route.name === "Home") {
+                            iconName = focused ? "home" : "home-outline";
+                        } else if (route.name === "Logs") {
+                            iconName = focused ? "list" : "list-outline";
+                        } else if (route.name === "Settings") {
+                            iconName = focused
+                                ? "settings"
+                                : "settings-outline";
+                        }
 
-                    return (
-                        <Ionicons
-                            name={iconName as any}
-                            size={size}
-                            color={color}
-                        />
-                    );
-                },
-                tabBarActiveTintColor: "blue",
-                tabBarInactiveTintColor: "gray",
-            })}
-        >
-            <Tab.Screen
-                name="Home"
-                options={{
-                    headerTitle: `Welcome${user?.name ? `, ${user.name}` : ""}`,
-                }}
+                        return (
+                            <Ionicons
+                                name={iconName as any}
+                                size={size}
+                                color={color}
+                            />
+                        );
+                    },
+                    tabBarStyle: {
+                        backgroundColor: "#272221",
+                    },
+                    tabBarActiveTintColor: "#fff",
+                    tabBarInactiveTintColor: "gray",
+                    headerTintColor: "#fff",
+                    headerStyle: {
+                        backgroundColor: "#272221",
+                    },
+                })}
             >
-                {() => (
-                    <HomeTab
-                        entries={vaultEntries}
-                        loading={loadingVault}
-                        groups={groups}
-                        loadingGroups={loadingGroups}
-                        refreshEntries={fetchEntries}
-                        refreshGroups={fetchGroups}
-                    />
-                )}
-            </Tab.Screen>
+                <Tab.Screen
+                    name="Home"
+                    options={{
+                        headerTitle: `Welcome${
+                            user?.name ? `, ${user.name}` : ""
+                        }`,
+                    }}
+                >
+                    {() => (
+                        <LinearGradient
+                            colors={["#48dbfb", "#73cae2", "#fff"]}
+                            style={{ flex: 1, padding: 0, margin: 0 }}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <HomeTab
+                                entries={vaultEntries}
+                                loading={loadingVault}
+                                groups={groups}
+                                loadingGroups={loadingGroups}
+                                refreshEntries={fetchEntries}
+                                refreshGroups={fetchGroups}
+                            />
+                        </LinearGradient>
+                    )}
+                </Tab.Screen>
 
-            <Tab.Screen name="Logs">
-                {() => <LogsTab logs={logs} loading={loadingLogs} />}
-            </Tab.Screen>
-            <Tab.Screen name="Settings" component={SettingsTab} />
-        </Tab.Navigator>
+                <Tab.Screen name="Logs">
+                    {() => (
+                        <LinearGradient
+                            colors={["#48dbfb", "#73cae2", "#fff"]}
+                            style={{ flex: 1, padding: 0, margin: 0 }}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <LogsTab logs={logs} loading={loadingLogs} />
+                        </LinearGradient>
+                    )}
+                </Tab.Screen>
+                <Tab.Screen name="Settings">
+                    {() => (
+                        <LinearGradient
+                            colors={["#48dbfb", "#73cae2", "#fff"]}
+                            style={{ flex: 1, padding: 0, margin: 0 }}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <SettingsTab />
+                        </LinearGradient>
+                    )}
+                </Tab.Screen>
+            </Tab.Navigator>
+        </SafeAreaView>
     );
 }

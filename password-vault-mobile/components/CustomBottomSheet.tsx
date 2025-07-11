@@ -1,13 +1,13 @@
-import React, { useRef, useEffect } from "react";
+import { Portal } from "@gorhom/portal";
+import React, { useEffect, useRef } from "react";
 import {
     Animated,
     Dimensions,
+    PanResponder,
     StyleSheet,
     TouchableWithoutFeedback,
     View,
-    PanResponder,
 } from "react-native";
-import { Portal } from "@gorhom/portal";
 
 type Props = {
     visible: boolean;
@@ -71,7 +71,7 @@ export default function CustomBottomSheet({
     return (
         <Portal>
             <View
-                style={styles.absoluteFill}
+                style={(styles.absoluteFill)}
                 pointerEvents={visible ? "auto" : "none"}
             >
                 <TouchableWithoutFeedback onPress={onClose}>

@@ -67,7 +67,7 @@ export default function EntryDetailSheet({
                                 <TouchableOpacity
                                     onPress={() => setEditMode(true)}
                                 >
-                                    <Text style={{ color: "#007AFF" }}>
+                                    <Text style={{ color: "#272221" }}>
                                         Edit
                                     </Text>
                                 </TouchableOpacity>
@@ -93,7 +93,7 @@ export default function EntryDetailSheet({
                                     <TouchableOpacity
                                         onPress={handleUpdateEntry}
                                     >
-                                        <Text style={{ color: "#007AFF" }}>
+                                        <Text style={{ color: "#272221" }}>
                                             Save
                                         </Text>
                                     </TouchableOpacity>
@@ -177,7 +177,7 @@ export default function EntryDetailSheet({
                                                             )
                                                         }
                                                         style={{
-                                                            color: "#007AFF",
+                                                            color: "#272221",
                                                             fontSize: 18,
                                                         }}
                                                     >
@@ -244,7 +244,7 @@ export default function EntryDetailSheet({
                                                         )
                                                     }
                                                     style={{
-                                                        color: "#007AFF",
+                                                        color: "#272221",
                                                         fontSize: 18,
                                                     }}
                                                 >
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     saveButton: {
-        backgroundColor: "#007AFF",
+        backgroundColor: "#272221",
         padding: 12,
         borderRadius: 8,
         marginTop: 16,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: "#007AFF",
+        backgroundColor: "#272221",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
@@ -369,12 +369,12 @@ const styles = StyleSheet.create({
         minHeight: 100,
         borderRadius: 16,
         borderWidth: 2,
-        borderColor: "#007AFF",
+        borderColor: "#272221",
         justifyContent: "center",
         alignItems: "center",
     },
     createText: {
-        color: "#007AFF",
+        color: "#272221",
         fontSize: 16,
         fontWeight: "500",
     },

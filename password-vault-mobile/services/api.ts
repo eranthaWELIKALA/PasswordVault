@@ -1,8 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as Device from "expo-device";
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Device from "expo-device";
 
 const deviceId =
     Device.osInternalBuildId ||
@@ -11,7 +11,7 @@ const deviceId =
     "unknown";
 
 const api = axios.create({
-    baseURL: 'http://192.168.8.173:4000/api',
+    baseURL: 'http://127.0.0.1:4000/api',
 });
 
 api.interceptors.request.use(async (config) => {

@@ -1,13 +1,20 @@
 import AddEntrySheet from "@/components/home-tab-uis/AddEntrySheet";
 import AddGroupSheet from "@/components/home-tab-uis/AddGroupSheet";
 import Dashboard from "@/components/home-tab-uis/Dashboard";
+import EntryList from "@/components/home-tab-uis/EntryList";
 import FloatingActionButton from "@/components/ui/FloatingActionButton";
+import { RootState } from "@/redux/store";
 import api from "@/services/api";
 import { encryptObject } from "@/services/crypto";
 import { Group } from "@/utils/dataTypes";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { HttpStatusCode } from "axios";
-import React, { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "expo-router";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { useSelector } from "react-redux";
 
 type VaultEntry = {
     _id?: string;
@@ -31,6 +38,11 @@ type Props = {
     refreshGroups: () => void;
 };
 
+type HomeTabStackParamList = {
+    Dashboard: undefined;
+    EntryList: undefined;
+};
+
 export default function HomeTab({
     entries,
     loading,
@@ -39,9 +51,12 @@ export default function HomeTab({
     refreshEntries,
     refreshGroups,
 }: Props) {
-    // const [visiblePasswords, setVisiblePasswords] = useState<
-    //     Record<string, boolean>
-    // >({});
+    const Stack = createNativeStackNavigator<HomeTabStackParamList>();
+    const navigation = useNavigation();
+
+    const selectedGroup = useSelector(
+        (state: RootState) => state.vault.selectedGroup
+    );
 
     // Add Group Sheet State
     const [addGroupSheetVisible, setAddGroupSheetVisible] = useState(false);
@@ -63,6 +78,15 @@ export default function HomeTab({
     const [newGroup, setNewGroup] = useState("");
 
     const [showAddPassword, setShowAddPassword] = useState(false);
+
+    useEffect(() => {
+        if (selectedGroup) {
+            (navigation as any).navigate("EntryList", {
+                group: selectedGroup.group,
+                groupEntries: groupedEntries[selectedGroup._id],
+            });
+        }
+    }, [selectedGroup]);
 
     if (loading) {
         return (
@@ -93,7 +117,7 @@ export default function HomeTab({
         };
 
         try {
-            const response = await api.post("groups", data);
+            const response = await api.post("vault/groups", data);
 
             if (response.status === HttpStatusCode.Created) {
                 alert("Group added successfully!");
@@ -193,12 +217,68 @@ export default function HomeTab({
         <View style={styles.tabContainer}>
             <FloatingActionButton onPress={() => setAddSheetVisible(true)} />
 
-            <Dashboard
-                groups={groups}
-                groupedEntries={groupedEntries}
-                refreshEntries={refreshEntries}
-                setAddGroupSheetVisible={setAddGroupSheetVisible}
-            />
+            <Stack.Navigator
+                screenOptions={{
+                    contentStyle: {
+                        borderWidth: 0,
+                    },
+                }}
+            >
+                <Stack.Screen
+                    name="Dashboard"
+                    component={() => (
+                        <LinearGradient
+                            colors={["#48dbfb", "#73cae2", "#fff"]}
+                            style={{ flex: 1, padding: 0, margin: 0 }}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <Dashboard
+                                groups={groups}
+                                groupedEntries={groupedEntries}
+                                refreshEntries={refreshEntries}
+                                setAddGroupSheetVisible={
+                                    setAddGroupSheetVisible
+                                }
+                            />
+                        </LinearGradient>
+                    )}
+                    options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name="EntryList"
+                    component={() => {
+                        const headerHeight = useHeaderHeight();
+                        return (
+                            <LinearGradient
+                                colors={["#48dbfb", "#73cae2", "#fff"]}
+                                style={{
+                                    flex: 1,
+                                    paddingTop: headerHeight,
+                                }}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <EntryList refreshEntries={refreshEntries} />
+                            </LinearGradient>
+                        );
+                    }}
+                    options={({
+                        route,
+                    }: {
+                        route: { params?: { group?: Group } };
+                    }) => ({
+                        headerShown: true,
+                        headerTransparent: true,
+                        headerStyle: {
+                            backgroundColor: "transparent",
+                            elevation: 0,
+                            shadowOpacity: 0,
+                        },
+                        title: route.params?.group?.group ?? "Entry List",
+                    })}
+                />
+            </Stack.Navigator>
 
             <AddGroupSheet
                 visible={addGroupSheetVisible}
@@ -224,7 +304,9 @@ export default function HomeTab({
 }
 
 const styles = StyleSheet.create({
-    tabContainer: { padding: 10, height: "100%" },
+    tabContainer: {
+        height: "100%",
+    },
     groupContainer: {
         marginBottom: 20,
     },
@@ -268,7 +350,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     saveButton: {
-        backgroundColor: "#007AFF",
+        backgroundColor: "#272221",
         padding: 12,
         borderRadius: 8,
         marginTop: 16,
@@ -286,7 +368,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: "#007AFF",
+        backgroundColor: "#272221",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
