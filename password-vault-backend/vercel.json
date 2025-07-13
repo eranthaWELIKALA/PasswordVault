@@ -6,7 +6,5 @@
       "src": "/(.*)",
       "dest": "server.js"
     }
-  ],
-  "installCommand": "npm install",
-  "startCommand": "npm run vercel-start"
+  ]
 }
