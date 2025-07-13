@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "add-user": "node scripts/addUser.js", 
-    "vercel-start": "npm run add-user && npm start",
-    "start": "node server.js"
+    "start": "npm run add-user && node server.js"
   },
   "keywords": [],
   "author": "",
